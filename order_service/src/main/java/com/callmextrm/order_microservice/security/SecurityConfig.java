@@ -12,26 +12,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
-
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
-        this.jwtAuthFilter = jwtAuthFilter;
-    }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain SecurityfilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2ResourceServer(
+                        oauth2->oauth2.jwt(Customizer.withDefaults()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/products/**").hasAnyRole("USER", "ADMIN", "PRODUCT_MANAGER")
-                        .requestMatchers(HttpMethod.POST, "/products/**").hasAnyRole("ADMIN", "PRODUCT_MANAGER")
-                        .requestMatchers(HttpMethod.PATCH, "/products/**").hasAnyRole("ADMIN", "PRODUCT_MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, "/products/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+                        .requestMatchers( "/orders/**").authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

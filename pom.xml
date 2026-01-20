@@ -19,7 +19,6 @@
         <module>notification_service</module>
         <module>order_service</module>
         <module>product-service</module>
-        <module>user-service</module>
         <module>common__events</module>
         <module>api_gateway</module>
     </modules>
