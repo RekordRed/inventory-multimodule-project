@@ -8,6 +8,7 @@ import com.callmextrm.order_microservice.entity.Status;
 import com.callmextrm.order_microservice.kafka.OrderEventProducer;
 import com.callmextrm.order_microservice.productClient.ProductClient;
 import com.callmextrm.order_microservice.repository.OrderRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.callmextrm.events.OrderCreatedEvent;
@@ -16,6 +17,7 @@ import org.callmextrm.events.OrderLines;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrderService {
 
     private final OrderRepository orderDao;
@@ -36,35 +39,43 @@ public class OrderService {
     }
 
     public Order createOrder(CreateOrderRequest request) {
-        // LATER: replace with real values from JWT / SecurityContext
 
 
         Authentication auth = getAuth();
+        Jwt jwt = (Jwt) auth.getPrincipal();
 
-        String username = auth.getName();
+
+        String username =jwt.getClaimAsString("preferred_username");
         String roles = auth.getAuthorities()
-                .stream().map(GrantedAuthority::getAuthority).collect(Collectors.joining(","));
+                .stream().map(GrantedAuthority::getAuthority).filter(a -> !a.startsWith("SCOPE_")).collect(Collectors.joining(","));
+        
         log.info("Creating order for user={}, with roles={}", username, roles);
 
 
-        // 1) Create order
         Order order = Order.builder()
                 .username(username)
-                .roles(roles).createdAt(Instant.now())
+                .roles(roles)
+                .createdAt(Instant.now())
                 .status(Status.CREATED).build();
 
 
-        // 2) Add items (using helper method so FK is set)
-
         for (OrderItemRequest itemRequest : request.items()) {
             productClient.assertProductExists(itemRequest.productId());
+            OrderItem item = OrderItem.builder()
+                    .productId(itemRequest.productId())
+                    .quantity(itemRequest.quantity())
+                    .build();
+            order.addItem(item);
+
+
         }
-        // 3) Save once (cascade saves items)
+
+
+
 
         Order saved = orderDao.save(order);
         log.info("Order saved with id={}", saved.getId());
 
-        // 4) Publish event to Kafka
         List<OrderLines> lines = saved.getItems().stream()
                 .map(i -> new OrderLines(i.getProductId(), i.getProductName(), i.getQuantity()))
                 .toList();

@@ -25,8 +25,8 @@ public class OrderNotificationConsumer {
 
     @KafkaListener(topics = "order_created", groupId = "notification_service")
     public void onOrderCreated(OrderCreatedEvent event){
-        log.info("ADMIN NOTIFICATION: New order {} created by {} roles={}",
-                event.orderId(), event.username(), event.roles());
+        log.info("ADMIN NOTIFICATION: New order {} created by {}",
+                event.orderId(), event.username());
 
         if (notificationDao.findByOrderId(event.orderId()).isPresent()){
             log.warn("Order already exists with the orderId:{}",event.orderId());
@@ -35,10 +35,9 @@ public class OrderNotificationConsumer {
         Notification notification = new Notification();
         notification.setType(Type.ORDER_CREATED);
         notification.setMessage
-                ("Order number "+event.orderId()+" created by: "+ event.username()+ " ("+ event.roles()+")");
+                ("Order number "+event.orderId()+" created by: "+ event.username());
         notification.setOrderId(event.orderId());
         notification.setUsername(event.username());
-        notification.setRoles(event.roles());
         notification.setCreatedAt(Instant.now());
         Notification saved = notificationDao.save(notification);
         notificationSseService.push(saved);

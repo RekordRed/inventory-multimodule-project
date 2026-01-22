@@ -1,0 +1,19 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8088/realms/inventory-realm
+          jwk-set-uri: http://localhost:8088/realms/inventory-realm/protocol/openid-connect/certs
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+
+jwt:
+  auth:
+    converter:
+      resource-id: InventoryMultimodule
+      principle-attribute: preferred_username

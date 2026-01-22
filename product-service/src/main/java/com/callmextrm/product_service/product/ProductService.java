@@ -4,6 +4,7 @@ import com.callmextrm.product_service.exception.Discontinued;
 import com.callmextrm.product_service.exception.Quantity;
 import com.callmextrm.product_service.exception.ResourceNotFound;
 import com.callmextrm.product_service.kafka.ProductEventProducer;
+import lombok.extern.slf4j.Slf4j;
 import org.callmextrm.events.ProductCreatedEvent;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,12 +12,11 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import org.slf4j.Logger;
-
+@Slf4j
 @Service
 public class ProductService {
     private final Productrepo productDao;
     private final ProductEventProducer producer;
-    private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
 
     public ProductService(Productrepo productDao, ProductEventProducer producer) {
@@ -34,11 +34,13 @@ public class ProductService {
 
         product.setStatus(Status.Active);
         log.info("Creating product: name={}, initial quantity={}", product.getName(), initialQuantity);
+
         Product saved = productDao.save(product);
         log.info("Product saved with id={}", saved.getId());
 
         producer.publishProductCreated(new ProductCreatedEvent(saved.getId(), initialQuantity));
         log.info("ProductCreatedEvent published for productId={}", saved.getId());
+
         return saved;
     }
 
